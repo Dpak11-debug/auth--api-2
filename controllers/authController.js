@@ -1,14 +1,16 @@
+
+
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/userModel");
 
-const ACCESS_SECRET = "access_secret_123";
-const REFRESH_SECRET = "refresh_secret_123";
+const ACCESS_SECRET = process.env.ACCESS_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
 let refreshTokens = [];
 
-
+// SIGNUP
 exports.signup = async (req, res) => {
     try {
         const { name, email, password, city } = req.body;
@@ -38,6 +40,29 @@ exports.signup = async (req, res) => {
             message: "User registered successfully"
         });
 
+        const accessToken = jwt.sign(
+            { id: user.id, email: user.email },
+            ACCESS_SECRET,
+            { expiresIn: "2m" }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: user.id, email: user.email },
+            REFRESH_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        refreshTokens.push(refreshToken);
+
+        return res.json({
+            success: true,
+            message: "User registered successfully",
+            data: {
+                accessToken,
+                refreshToken
+            }
+        });
+
     } catch (err) {
         return res.status(500).json({
             success: false,
@@ -47,7 +72,7 @@ exports.signup = async (req, res) => {
     }
 };
 
-
+// LOGIN
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -114,8 +139,33 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.logout = (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Refresh token required"
+            });
+        }
+        refreshTokens = refreshTokens.filter((t) => t !== token);
+
+        return res.json({
+            success: true,
+            message: "Logout successful"
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Logout failed",
+            error: err.message
+        });
+    }
+};
 
 
+// REFRESH TOKEN
 exports.refreshToken = (req, res) => {
     try {
         const { token } = req.body;
@@ -166,7 +216,7 @@ exports.refreshToken = (req, res) => {
     }
 };
 
-
+// GET USERS BY CITY
 exports.getUsersByCity = async (req, res) => {
     try {
         const city = req.params.city || req.query.city;
