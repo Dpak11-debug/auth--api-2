@@ -9,6 +9,7 @@ router.post("/login", authController.login);
 router.post("/logout", authController.logout);
 router.post("/token", authController.refreshToken);
 router.get("/users/city/:city", authController.getUsersByCity);
+router.get("/users", authController.getAllUsers);
 
 router.get("/profile", authenticateToken, (req, res) => {
     res.send("Protected route");

@@ -1,11 +1,9 @@
-const mysql = require("mysql2/promise");
+const mongoose = require("mongoose");
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "auth_db"
-});
+const connectDB = async () => {
+  const uri =
+    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/auth_db";
+  await mongoose.connect(uri);
+};
 
-
-module.exports = db;
+module.exports = connectDB;

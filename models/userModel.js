@@ -1,40 +1,50 @@
-const db = require("../config/db");
+const mongoose = require("mongoose");
 
-// create user
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true
+    },
+    password: { type: String, required: true },
+    city: { type: String, required: true }
+  },
+  { timestamps: true }
+);
+
+const User = mongoose.model("User", userSchema);
+
 const createUser = async (name, email, password, city) => {
-    await db.execute(
-        "INSERT INTO users (name, email, password, city) VALUES (?, ?, ?, ?)",
-        [name, email, password, city]
-    );
+  await User.create({ name, email, password, city });
 };
 
-// find by email
 const findByEmail = async (email) => {
-    const [rows] = await db.execute(
-        "SELECT * FROM users WHERE email = ?",
-        [email]
-    );
-    return rows[0];
+  return User.findOne({ email: String(email).toLowerCase().trim() });
 };
 
-// get all users
 const getAllUsers = async () => {
-    const [rows] = await db.execute("SELECT * FROM users");
-    return rows;
+  return User.find().lean();
 };
 
-// get users by city
 const getUsersByCity = async (city) => {
-    const [rows] = await db.execute(
-        "SELECT id, name, email, city FROM users WHERE city = ?",
-        [city]
-    );
-    return rows;
+  const users = await User.find({ city })
+    .select("name email city")
+    .lean();
+  return users.map((u) => ({
+    id: u._id.toString(),
+    name: u.name,
+    email: u.email,
+    city: u.city
+  }));
 };
 
 module.exports = {
-    createUser,
-    findByEmail,
-    getAllUsers,
-    getUsersByCity
+  createUser,
+  findByEmail,
+  getAllUsers,
+  getUsersByCity
 };

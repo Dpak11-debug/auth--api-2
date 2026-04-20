@@ -1,6 +1,3 @@
-
-
-const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/userModel");
@@ -35,11 +32,6 @@ exports.signup = async (req, res) => {
 
         await userModel.createUser(name, email, hashedPassword, city);
 
-        return res.status(201).json({
-            success: true,
-            message: "User registered successfully"
-        });
-
         const accessToken = jwt.sign(
             { id: user.id, email: user.email },
             ACCESS_SECRET,
@@ -54,7 +46,7 @@ exports.signup = async (req, res) => {
 
         refreshTokens.push(refreshToken);
 
-        return res.json({
+        return res.status(201).json({
             success: true,
             message: "User registered successfully",
             data: {
@@ -84,19 +76,14 @@ exports.login = async (req, res) => {
             });
         }
 
-        const [rows] = await db.execute(
-            "SELECT * FROM users WHERE email = ?",
-            [email]
-        );
+        const user = await userModel.findByEmail(email);
 
-        if (rows.length === 0) {
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password"
             });
         }
-
-        const user = rows[0];
 
         const isMatch = await bcrypt.compare(password, user.password);
 
@@ -107,14 +94,16 @@ exports.login = async (req, res) => {
             });
         }
 
+        const userId = user._id.toString();
+
         const accessToken = jwt.sign(
-            { id: user.id, email: user.email },
+            { id: userId, email: user.email },
             ACCESS_SECRET,
             { expiresIn: "2m" }
         );
 
         const refreshToken = jwt.sign(
-            { id: user.id, email: user.email },
+            { id: userId, email: user.email },
             REFRESH_SECRET,
             { expiresIn: "7d" }
         );
@@ -239,6 +228,25 @@ exports.getUsersByCity = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to fetch users by city",
+            error: err.message
+        });
+    }
+
+};
+
+// GET ALL USERS
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await userModel.getAllUsers();
+        return res.status(200).json({
+            success: true,
+            message: "Users fetched successfully",
+            data: users
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch all users",
             error: err.message
         });
     }
