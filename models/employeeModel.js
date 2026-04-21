@@ -69,8 +69,57 @@ const getAllEmployees = async () => {
   return rows;
 };
 
+const updateEmployeeById = async (id, updates) => {
+  const fields = [];
+  const values = [];
+
+  if (updates.name !== undefined) {
+    fields.push("name = ?");
+    values.push(updates.name);
+  }
+  if (updates.email !== undefined) {
+    fields.push("email = ?");
+    values.push(updates.email);
+  }
+  if (updates.department !== undefined) {
+    fields.push("department = ?");
+    values.push(updates.department);
+  }
+  if (updates.salary !== undefined) {
+    fields.push("salary = ?");
+    values.push(updates.salary);
+  }
+
+  if (fields.length === 0) {
+    return null;
+  }
+
+  values.push(id);
+
+  await pool.query(
+    `UPDATE employees SET ${fields.join(", ")} WHERE id = ?`,
+    values
+  );
+
+  const [rows] = await pool.query("SELECT * FROM employees WHERE id = ?", [id]);
+  return rows[0] || null;
+};
+
+const deleteEmployeeById = async (id) => {
+  const [rows] = await pool.query("SELECT * FROM employees WHERE id = ?", [id]);
+
+  if (!rows.length) {
+    return null;
+  }
+
+  await pool.query("DELETE FROM employees WHERE id = ?", [id]);
+  return rows[0];
+};
+
 module.exports = {
   createEmployeesTable,
   createEmployee,
-  getAllEmployees
+  getAllEmployees,
+  updateEmployeeById,
+  deleteEmployeeById
 };
